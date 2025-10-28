@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Proxy - VPN Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            background-color: #000;
+            color: #0f0;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        #matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.3;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #0f0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #0f0, 0 0 20px #0f0;
+            letter-spacing: 3px;
+            animation: glitch 5s infinite;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #0a0;
+            margin-bottom: 10px;
+        }
+        
+        .card {
+            background-color: rgba(0, 20, 0, 0.7);
+            border: 1px solid #0f0;
+            border-radius: 5px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #0f0, transparent);
+            animation: scanline 3s linear infinite;
+        }
+        
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #0a0;
+            border-radius: 0;
+            font-size: 1rem;
+            background: rgba(0, 10, 0, 0.8);
+            color: #0f0;
+            outline: none;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #0f0;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+        
+        button {
+            padding: 15px 25px;
+            border: 1px solid #0f0;
+            background: rgba(0, 20, 0, 0.8);
+            color: #0f0;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        button:hover {
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+            text-shadow: 0 0 5px #0f0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-secondary {
+            background: rgba(0, 30, 0, 0.8);
+        }
+        
+        .btn-danger {
+            background: rgba(30, 0, 0, 0.8);
+            border-color: #f00;
+            color: #f00;
+        }
+        
+        .btn-danger:hover {
+            background: rgba(255, 0, 0, 0.2);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+            text-shadow: 0 0 5px #f00;
+        }
+        
+        .btn-vpn {
+            background: rgba(0, 0, 30, 0.8);
+            border-color: #00f;
+            color: #00f;
+        }
+        
+        .btn-vpn:hover {
+            background: rgba(0, 0, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 0, 255, 0.5);
+            text-shadow: 0 0 5px #00f;
+        }
+        
+        .btn-vpn.active {
+            background: rgba(0, 0, 100, 0.8);
+            box-shadow: 0 0 20px rgba(0, 0, 255, 0.7);
+        }
+        
+        .result-container {
+            margin-top: 20px;
+            display: none;
+        }
+        
+        #resultFrame {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #0a0;
+            background-color: #000;
+        }
+        
+        .text-result {
+            background-color: rgba(0, 10, 0, 0.8);
+            color: #0f0;
+            padding: 20px;
+            border: 1px solid #0a0;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .status {
+            padding: 10px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: none;
+            border: 1px solid;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background-color: rgba(0, 20, 0, 0.5);
+            border-color: #0f0;
+            color: #0f0;
+        }
+        
+        .status.error {
+            background-color: rgba(20, 0, 0, 0.5);
+            border-color: #f00;
+            color: #f00;
+        }
+        
+        .status.warning {
+            background-color: rgba(40, 40, 0, 0.5);
+            border-color: #ff0;
+            color: #ff0;
+        }
+        
+        .status.vpn {
+            background-color: rgba(0, 0, 20, 0.5);
+            border-color: #00f;
+            color: #00f;
+        }
+        
+        .tab-container {
+            margin-bottom: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #0a0;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            border-color: #0f0;
+            background: rgba(0, 20, 0, 0.5);
+            color: #0f0;
+            box-shadow: 0 -2px 10px rgba(0, 255, 0, 0.3);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px 0;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .history-item {
+            padding: 12px 15px;
+            background: rgba(0, 15, 0, 0.5);
+            margin-bottom: 10px;
+            border: 1px solid #0a0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .history-item:hover {
+            background: rgba(0, 25, 0, 0.7);
+            border-color: #0f0;
+        }
+        
+        .history-item .time {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+            border-top: 1px solid #0a0;
+        }
+        
+        .disclaimer {
+            font-size: 0.8rem;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(30, 0, 0, 0.3);
+            border-left: 3px solid #f00;
+        }
+        
+        .proxy-selector {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .proxy-selector select {
+            background: rgba(0, 10, 0, 0.8);
+            color: #0f0;
+            border: 1px solid #0a0;
+            padding: 5px 10px;
+            outline: none;
+        }
+        
+        .method-selector {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .method-selector select {
+            background: rgba(0, 10, 0, 0.8);
+            color: #0f0;
+            border: 1px solid #0a0;
+            padding: 5px 10px;
+            outline: none;
+        }
+        
+        .vpn-controls {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(0, 0, 20, 0.3);
+            border: 1px solid #00a;
+            border-radius: 5px;
+        }
+        
+        .vpn-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .vpn-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f00;
+            box-shadow: 0 0 10px #f00;
+        }
+        
+        .vpn-indicator.active {
+            background: #0f0;
+            box-shadow: 0 0 10px #0f0;
+        }
+        
+        .vpn-location {
+            margin: 10px 0;
+        }
+        
+        .vpn-location select {
+            background: rgba(0, 10, 0, 0.8);
+            color: #0f0;
+            border: 1px solid #0a0;
+            padding: 5px 10px;
+            outline: none;
+            width: 200px;
+        }
+        
+        .vpn-stats {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .suggestions {
+            margin: 10px 0;
+        }
+        
+        .suggestion-item {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            background: rgba(0, 30, 0, 0.5);
+            border: 1px solid #0a0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .suggestion-item:hover {
+            background: rgba(0, 50, 0, 0.7);
+            border-color: #0f0;
+        }
+        
+        .glitch-text {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch-text::before {
+            left: 2px;
+            text-shadow: -2px 0 #f00;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        
+        .glitch-text::after {
+            left: -2px;
+            text-shadow: -2px 0 #00f;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+        
+        @keyframes glitch {
+            0% { text-shadow: 0 0 10px #0f0, 0 0 20px #0f0; }
+            50% { text-shadow: 0 0 15px #0f0, 0 0 30px #0f0, 0 0 40px #0f0; }
+            100% { text-shadow: 0 0 10px #0f0, 0 0 20px #0f0; }
+        }
+        
+        @keyframes scanline {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        @keyframes glitch-anim {
+            0% { clip: rect(42px, 9999px, 44px, 0); }
+            5% { clip: rect(12px, 9999px, 59px, 0); }
+            10% { clip: rect(48px, 9999px, 29px, 0); }
+            15% { clip: rect(42px, 9999px, 73px, 0); }
+            20% { clip: rect(63px, 9999px, 27px, 0); }
+            25% { clip: rect(34px, 9999px, 55px, 0); }
+            30% { clip: rect(86px, 9999px, 73px, 0); }
+            35% { clip: rect(20px, 9999px, 20px, 0); }
+            40% { clip: rect(26px, 9999px, 60px, 0); }
+            45% { clip: rect(25px, 9999px, 66px, 0); }
+            50% { clip: rect(57px, 9999px, 98px, 0); }
+            55% { clip: rect(5px, 9999px, 46px, 0); }
+            60% { clip: rect(82px, 9999px, 31px, 0); }
+            65% { clip: rect(54px, 9999px, 27px, 0); }
+            70% { clip: rect(28px, 9999px, 99px, 0); }
+            75% { clip: rect(45px, 9999px, 69px, 0); }
+            80% { clip: rect(23px, 9999px, 85px, 0); }
+            85% { clip: rect(54px, 9999px, 84px, 0); }
+            90% { clip: rect(45px, 9999px, 47px, 0); }
+            95% { clip: rect(37px, 9999px, 20px, 0); }
+            100% { clip: rect(4px, 9999px, 91px, 0); }
+        }
+        
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 100px, 0); }
+            5% { clip: rect(52px, 9999px, 74px, 0); }
+            10% { clip: rect(79px, 9999px, 85px, 0); }
+            15% { clip: rect(75px, 9999px, 5px, 0); }
+            20% { clip: rect(67px, 9999px, 61px, 0); }
+            25% { clip: rect(14px, 9999px, 79px, 0); }
+            30% { clip: rect(1px, 9999px, 66px, 0); }
+            35% { clip: rect(86px, 9999px, 30px, 0); }
+            40% { clip: rect(23px, 9999px, 98px, 0); }
+            45% { clip: rect(85px, 9999px, 72px, 0); }
+            50% { clip: rect(71px, 9999px, 75px, 0); }
+            55% { clip: rect(2px, 9999px, 48px, 0); }
+            60% { clip: rect(30px, 9999px, 16px, 0); }
+            65% { clip: rect(59px, 9999px, 50px, 0); }
+            70% { clip: rect(41px, 9999px, 62px, 0); }
+            75% { clip: rect(2px, 9999px, 82px, 0); }
+            80% { clip: rect(47px, 9999px, 73px, 0); }
+            85% { clip: rect(3px, 9999px, 27px, 0); }
+            90% { clip: rect(26px, 9999px, 55px, 0); }
+            95% { clip: rect(42px, 9999px, 97px, 0); }
+            100% { clip: rect(38px, 9999px, 49px, 0); }
+        }
+        
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+            }
+            
+            input[type="text"] {
+                margin-bottom: 10px;
+            }
+            
+            button {
+                width: 100%;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-bg"></canvas>
+    
+    <div class="container">
+        <header>
+            <h1 class="glitch-text" data-text="MATRIX PROXY VPN">MATRIX PROXY VPN</h1>
+            <p class="subtitle">Encrypted Access Beyond the Firewall</p>
+            <p>Secure tunneling active...</p>
+        </header>
+        
+        <div class="card">
+            <div class="vpn-controls">
+                <div class="vpn-status">
+                    <div class="vpn-indicator" id="vpnIndicator"></div>
+                    <span id="vpnStatusText">VPN DISCONNECTED</span>
+                    <button class="btn-vpn" id="vpnToggle">ACTIVATE VPN</button>
+                </div>
+                
+                <div class="vpn-location" id="vpnLocation" style="display: none;">
+                    <span>Virtual Location:</span>
+                    <select id="locationSelector">
+                        <option value="auto">Auto (Fastest)</option>
+                        <option value="us">United States</option>
+                        <option value="uk">United Kingdom</option>
+                        <option value="de">Germany</option>
+                        <option value="jp">Japan</option>
+                        <option value="sg">Singapore</option>
+                        <option value="nl">Netherlands</option>
+                        <option value="ca">Canada</option>
+                        <option value="au">Australia</option>
+                        <option value="ch">Switzerland</option>
+                    </select>
+                </div>
+                
+                <div class="vpn-stats" id="vpnStats" style="display: none;">
+                    <div>Encryption: AES-256</div>
+                    <div>Protocol: WireGuard</div>
+                    <div id="connectionTime">Uptime: 00:00:00</div>
+                </div>
+            </div>
+            
+            <div class="tab-container">
+                <div class="tabs">
+                    <div class="tab active" data-tab="browse">Browse</div>
+                    <div class="tab" data-tab="text">Text-Only</div>
+                    <div class="tab" data-tab="history">Access Log</div>
+                </div>
+            </div>
+            
+            <div class="tab-content active" id="browse-tab">
+                <div class="input-group">
+                    <input type="text" id="urlInput" placeholder="Enter target URL (e.g., https://example.com)">
+                    <button id="browseBtn">Access System</button>
+                </div>
+                
+                <div class="proxy-selector">
+                    <span>Proxy Service:</span>
+                    <select id="proxySelector">
+                        <option value="auto">Auto (Best Available)</option>
+                        <option value="allorigins">AllOrigins</option>
+                        <option value="corsproxy">CORS Proxy</option>
+                        <option value="corsanywhere">CORS Anywhere</option>
+                        <option value="thingproxy">ThingProxy</option>
+                        <option value="yacdn">YACDN</option>
+                    </select>
+                </div>
+                
+                <div class="method-selector">
+                    <span>Access Method:</span>
+                    <select id="methodSelector">
+                        <option value="iframe">Direct Iframe</option>
+                        <option value="proxy">Proxy Service</option>
+                    </select>
+                </div>
+                
+                <div class="suggestions">
+                    <p>Try these alternatives:</p>
+                    <div class="suggestion-item" data-url="https://stackoverflow.com">StackOverflow</div>
+                    <div class="suggestion-item" data-url="https://github.com">GitHub</div>
+                    <div class="suggestion-item" data-url="https://news.google.com">Google News</div>
+                    <div class="suggestion-item" data-url="https://wikipedia.org">Wikipedia</div>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-secondary" id="popularSitesBtn">Common Systems</button>
+                    <button class="btn-danger" id="clearBtn">Clear</button>
+                </div>
+                
+                <div class="status" id="statusMessage"></div>
+                
+                <div class="result-container" id="browseResult">
+                    <iframe id="resultFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="text-tab">
+                <div class="input-group">
+                    <input type="text" id="textUrlInput" placeholder="Enter URL for text extraction">
+                    <button id="fetchTextBtn">Extract Data</button>
+                </div>
+                
+                <div class="status" id="textStatusMessage"></div>
+                
+                <div class="result-container" id="textResult">
+                    <div class="text-result" id="textContent"></div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="history-tab">
+                <h3>Access Log</h3>
+                <div id="historyList"></div>
+                <button class="btn-danger" id="clearHistoryBtn" style="margin-top: 15px;">Wipe Log</button>
+            </div>
+            
+            <div class="disclaimer">
+                <strong>System Notice:</strong> This VPN simulation provides enhanced privacy through proxy chaining. For true VPN protection, use a dedicated VPN service.
+            </div>
+        </div>
+        
+        <footer>
+            <p>Matrix Proxy VPN v2.1.0 &copy; 2023 | System Status: <span style="color:#0f0;">ONLINE</span> | <span id="vpnFooterStatus" style="color:#f00;">VPN: DISABLED</span></p>
+        </footer>
+    </div>
+
+    <script>
+        // Matrix background effect
+        const canvas = document.getElementById('matrix-bg');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const chars = "アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const charArray = chars.split("");
+        
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        
+        const drops = [];
+        for (let i = 0; i < columns; i++) {
+            drops[i] = Math.floor(Math.random() * canvas.height / fontSize);
+        }
+        
+        function drawMatrix() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.04)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Change color based on VPN status
+            const vpnActive = document.getElementById('vpnToggle').classList.contains('active');
+            ctx.fillStyle = vpnActive ? "#00f" : "#0f0";
+            
+            ctx.font = fontSize + "px monospace";
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                
+                drops[i]++;
+            }
+        }
+        
+        setInterval(drawMatrix, 35);
+        
+        // VPN functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const urlInput = document.getElementById('urlInput');
+            const browseBtn = document.getElementById('browseBtn');
+            const resultFrame = document.getElementById('resultFrame');
+            const browseResult = document.getElementById('browseResult');
+            const statusMessage = document.getElementById('statusMessage');
+            const proxySelector = document.getElementById('proxySelector');
+            const methodSelector = document.getElementById('methodSelector');
+            
+            const textUrlInput = document.getElementById('textUrlInput');
+            const fetchTextBtn = document.getElementById('fetchTextBtn');
+            const textContent = document.getElementById('textContent');
+            const textResult = document.getElementById('textResult');
+            const textStatusMessage = document.getElementById('textStatusMessage');
+            
+            const popularSitesBtn = document.getElementById('popularSitesBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const historyList = document.getElementById('historyList');
+            const suggestionItems = document.querySelectorAll('.suggestion-item');
+            
+            // VPN Elements
+            const vpnToggle = document.getElementById('vpnToggle');
+            const vpnIndicator = document.getElementById('vpnIndicator');
+            const vpnStatusText = document.getElementById('vpnStatusText');
+            const vpnLocation = document.getElementById('vpnLocation');
+            const locationSelector = document.getElementById('locationSelector');
+            const vpnStats = document.getElementById('vpnStats');
+            const connectionTime = document.getElementById('connectionTime');
+            const vpnFooterStatus = document.getElementById('vpnFooterStatus');
+            
+            // VPN State
+            let vpnActive = false;
+            let connectionStartTime = null;
+            let connectionTimer = null;
+            
+            // Proxy services with VPN-enhanced versions
+            const proxyServices = {
+                allorigins: (url, vpnActive, location) => {
+                    const baseUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                    return vpnActive ? baseUrl + `&vpn=${location}` : baseUrl;
+                },
+                corsproxy: (url, vpnActive, location) => {
+                    const baseUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+                    return vpnActive ? baseUrl + `&vpn=${location}` : baseUrl;
+                },
+                corsanywhere: (url, vpnActive, location) => {
+                    const baseUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+                    return vpnActive ? baseUrl + `?vpn=${location}` : baseUrl;
+                },
+                thingproxy: (url, vpnActive, location) => {
+                    const baseUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+                    return vpnActive ? baseUrl + `?vpn=${location}` : baseUrl;
+                },
+                yacdn: (url, vpnActive, location) => {
+                    const baseUrl = `https://yacdn.org/proxy/${url}`;
+                    return vpnActive ? baseUrl + `?vpn=${location}` : baseUrl;
+                }
+            };
+            
+            // VPN locations with simulated servers
+            const vpnLocations = {
+                us: { name: "United States", server: "nyc-102.vpn.matrix" },
+                uk: { name: "United Kingdom", server: "london-204.vpn.matrix" },
+                de: { name: "Germany", server: "frankfurt-308.vpn.matrix" },
+                jp: { name: "Japan", server: "tokyo-512.vpn.matrix" },
+                sg: { name: "Singapore", server: "singapore-616.vpn.matrix" },
+                nl: { name: "Netherlands", server: "amsterdam-720.vpn.matrix" },
+                ca: { name: "Canada", server: "toronto-824.vpn.matrix" },
+                au: { name: "Australia", server: "sydney-928.vpn.matrix" },
+                ch: { name: "Switzerland", server: "zurich-1032.vpn.matrix" }
+            };
+            
+            // State
+            let history = JSON.parse(localStorage.getItem('proxyHistory')) || [];
+            
+            // Initialize
+            renderHistory();
+            
+            // Event Listeners
+            browseBtn.addEventListener('click', browseWebsite);
+            fetchTextBtn.addEventListener('click', fetchTextContent);
+            popularSitesBtn.addEventListener('click', showPopularSites);
+            clearBtn.addEventListener('click', clearResults);
+            clearHistoryBtn.addEventListener('click', clearHistory);
+            vpnToggle.addEventListener('click', toggleVPN);
+            
+            // Suggestion items
+            suggestionItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    urlInput.value = this.getAttribute('data-url');
+                    browseWebsite();
+                });
+            });
+            
+            urlInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') browseWebsite();
+            });
+            
+            textUrlInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') fetchTextContent();
+            });
+            
+            // Tab switching
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // Update tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update content
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // VPN Functions
+            function toggleVPN() {
+                vpnActive = !vpnActive;
+                
+                if (vpnActive) {
+                    // Activate VPN
+                    vpnToggle.classList.add('active');
+                    vpnToggle.textContent = 'DEACTIVATE VPN';
+                    vpnIndicator.classList.add('active');
+                    vpnStatusText.textContent = 'VPN CONNECTED';
+                    vpnStatusText.style.color = '#0f0';
+                    vpnLocation.style.display = 'block';
+                    vpnStats.style.display = 'block';
+                    vpnFooterStatus.textContent = 'VPN: ACTIVE';
+                    vpnFooterStatus.style.color = '#0f0';
+                    
+                    // Start connection timer
+                    connectionStartTime = new Date();
+                    updateConnectionTime();
+                    connectionTimer = setInterval(updateConnectionTime, 1000);
+                    
+                    showStatus('VPN ACTIVATED - Traffic is now encrypted and routed through secure tunnel', 'vpn');
+                } else {
+                    // Deactivate VPN
+                    vpnToggle.classList.remove('active');
+                    vpnToggle.textContent = 'ACTIVATE VPN';
+                    vpnIndicator.classList.remove('active');
+                    vpnStatusText.textContent = 'VPN DISCONNECTED';
+                    vpnStatusText.style.color = '#f00';
+                    vpnLocation.style.display = 'none';
+                    vpnStats.style.display = 'none';
+                    vpnFooterStatus.textContent = 'VPN: DISABLED';
+                    vpnFooterStatus.style.color = '#f00';
+                    
+                    // Stop connection timer
+                    clearInterval(connectionTimer);
+                    connectionTime.textContent = 'Uptime: 00:00:00';
+                    
+                    showStatus('VPN DEACTIVATED - Direct connection restored', 'warning');
+                }
+                
+                // Redraw matrix with new color
+                drawMatrix();
+            }
+            
+            function updateConnectionTime() {
+                if (!connectionStartTime) return;
+                
+                const now = new Date();
+                const diff = Math.floor((now - connectionStartTime) / 1000);
+                
+                const hours = Math.floor(diff / 3600);
+                const minutes = Math.floor((diff % 3600) / 60);
+                const seconds = diff % 60;
+                
+                connectionTime.textContent = `Uptime: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            // Proxy Functions
+            async function browseWebsite() {
+                const url = urlInput.value.trim();
+                if (!url) {
+                    showStatus('ERROR: No target URL specified', 'error');
+                    return;
+                }
+                
+                const vpnStatus = vpnActive ? ' (VPN ENCRYPTED)' : '';
+                showStatus(`ACCESSING SYSTEM${vpnStatus}...`, vpnActive ? 'vpn' : 'success');
+                
+                // Add protocol if missing
+                let fullUrl = url;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    fullUrl = 'https://' + url;
+                }
+                
+                const selectedProxy = proxySelector.value;
+                const selectedMethod = methodSelector.value;
+                const selectedLocation = locationSelector.value;
+                
+                try {
+                    if (selectedMethod === 'iframe') {
+                        // Try direct iframe first (works for some sites)
+                        resultFrame.src = fullUrl;
+                        browseResult.style.display = 'block';
+                        showStatus(`DIRECT ACCESS ATTEMPTED${vpnStatus} - May be blocked by target`, 'warning');
+                    } else {
+                        let htmlContent;
+                        
+                        if (selectedProxy === 'auto') {
+                            // Try all proxies until one works
+                            htmlContent = await tryAllProxies(fullUrl, vpnActive, selectedLocation);
+                        } else {
+                            // Use selected proxy
+                            htmlContent = await fetchWithProxy(fullUrl, selectedProxy, vpnActive, selectedLocation);
+                        }
+                        
+                        // Display content in iframe
+                        resultFrame.src = "about:blank";
+                        const blob = new Blob([htmlContent], { type: 'text/html' });
+                        const blobUrl = URL.createObjectURL(blob);
+                        resultFrame.src = blobUrl;
+                        
+                        browseResult.style.display = 'block';
+                        showStatus(`SYSTEM ACCESSED SUCCESSFULLY${vpnStatus}`, vpnActive ? 'vpn' : 'success');
+                    }
+                    
+                    // Add to history
+                    addToHistory(fullUrl, 'browse');
+                } catch (error) {
+                    console.error('Proxy error:', error);
+                    showStatus(`ACCESS DENIED: ${error.message}${vpnStatus}. Try "Direct Iframe" method or different site.`, 'error');
+                }
+            }
+            
+            async function fetchTextContent() {
+                const url = textUrlInput.value.trim();
+                if (!url) {
+                    showTextStatus('ERROR: No target URL specified', 'error');
+                    return;
+                }
+                
+                const vpnStatus = vpnActive ? ' (VPN ENCRYPTED)' : '';
+                showTextStatus(`EXTRACTING DATA${vpnStatus}...`, vpnActive ? 'vpn' : 'success');
+                
+                // Add protocol if missing
+                let fullUrl = url;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    fullUrl = 'https://' + url;
+                }
+                
+                const selectedLocation = locationSelector.value;
+                
+                try {
+                    // Try all proxies until one works
+                    const htmlContent = await tryAllProxies(fullUrl, vpnActive, selectedLocation);
+                    
+                    // Extract text from HTML
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = htmlContent;
+                    
+                    // Remove script and style elements
+                    const scripts = tempDiv.getElementsByTagName('script');
+                    const styles = tempDiv.getElementsByTagName('style');
+                    
+                    for (let i = scripts.length - 1; i >= 0; i--) {
+                        scripts[i].parentNode.removeChild(scripts[i]);
+                    }
+                    
+                    for (let i = styles.length - 1; i >= 0; i--) {
+                        styles[i].parentNode.removeChild(styles[i]);
+                    }
+                    
+                    // Get text content
+                    const text = tempDiv.textContent || tempDiv.innerText || '';
+                    
+                    textContent.textContent = text.substring(0, 10000) + (text.length > 10000 ? '\n\n... (DATA TRUNCATED)' : '');
+                    textResult.style.display = 'block';
+                    showTextStatus(`DATA EXTRACTION COMPLETE${vpnStatus}`, vpnActive ? 'vpn' : 'success');
+                    
+                    // Add to history
+                    addToHistory(fullUrl, 'text');
+                } catch (error) {
+                    console.error('Proxy error:', error);
+                    showTextStatus(`EXTRACTION FAILED: ${error.message}${vpnStatus}. Try a different site.`, 'error');
+                }
+            }
+            
+            async function tryAllProxies(url, vpnActive, location) {
+                const proxyNames = Object.keys(proxyServices);
+                
+                for (let i = 0; i < proxyNames.length; i++) {
+                    const proxyName = proxyNames[i];
+                    try {
+                        const vpnStatus = vpnActive ? ' (VPN)' : '';
+                        showStatus(`Trying proxy: ${proxyName.toUpperCase()}${vpnStatus}...`, vpnActive ? 'vpn' : 'success');
+                        const content = await fetchWithProxy(url, proxyName, vpnActive, location);
+                        showStatus(`SUCCESS: Connected via ${proxyName.toUpperCase()}${vpnStatus}`, vpnActive ? 'vpn' : 'success');
+                        return content;
+                    } catch (error) {
+                        console.warn(`Proxy ${proxyName} failed:`, error);
+                        // Continue to next proxy
+                    }
+                }
+                
+                throw new Error('All proxy services failed. Try "Direct Iframe" method or different site.');
+            }
+            
+            async function fetchWithProxy(url, proxyName, vpnActive, location) {
+                // Get actual location for VPN simulation
+                const actualLocation = vpnActive && location !== 'auto' ? location : 'us';
+                const proxyUrl = proxyServices[proxyName](url, vpnActive, actualLocation);
+                
+                // Simulate VPN handshake delay
+                if (vpnActive) {
+                    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
+                }
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'X-VPN-Enabled': vpnActive ? 'true' : 'false',
+                        'X-VPN-Location': vpnActive ? actualLocation : 'direct'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Proxy ${proxyName} returned ${response.status}`);
+                }
+                
+                // Handle different proxy response formats
+                if (proxyName === 'allorigins') {
+                    const data = await response.json();
+                    return data.contents;
+                } else {
+                    return await response.text();
+                }
+            }
+            
+            function showPopularSites() {
+                const sites = [
+                    'https://www.wikipedia.org',
+                    'https://news.google.com',
+                    'https://www.stackoverflow.com',
+                    'https://github.com',
+                    'https://www.reddit.com'
+                ];
+                
+                const randomSite = sites[Math.floor(Math.random() * sites.length)];
+                urlInput.value = randomSite;
+                const vpnStatus = vpnActive ? ' (VPN ENCRYPTED)' : '';
+                showStatus(`SYSTEM SELECTED: ${randomSite}${vpnStatus}`, vpnActive ? 'vpn' : 'success');
+            }
+            
+            function clearResults() {
+                urlInput.value = '';
+                textUrlInput.value = '';
+                resultFrame.src = 'about:blank';
+                textContent.textContent = '';
+                browseResult.style.display = 'none';
+                textResult.style.display = 'none';
+                statusMessage.style.display = 'none';
+                textStatusMessage.style.display = 'none';
+                const vpnStatus = vpnActive ? ' (VPN)' : '';
+                showStatus(`SYSTEM RESET${vpnStatus}`, vpnActive ? 'vpn' : 'success');
+                setTimeout(() => { statusMessage.style.display = 'none'; }, 2000);
+            }
+            
+            function showStatus(message, type) {
+                statusMessage.textContent = message;
+                statusMessage.className = `status ${type}`;
+                statusMessage.style.display = 'block';
+                
+                // Auto hide after 5 seconds
+                setTimeout(() => {
+                    statusMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            function showTextStatus(message, type) {
+                textStatusMessage.textContent = message;
+                textStatusMessage.className = `status ${type}`;
+                textStatusMessage.style.display = 'block';
+                
+                // Auto hide after 5 seconds
+                setTimeout(() => {
+                    textStatusMessage.style.display = 'none';
+                }, 5000);
+            }
+            
+            function addToHistory(url, type) {
+                // Check if already in history
+                const existingIndex = history.findIndex(item => item.url === url);
+                
+                if (existingIndex !== -1) {
+                    // Remove existing entry to add it to the top
+                    history.splice(existingIndex, 1);
+                }
+                
+                // Add to history
+                history.unshift({
+                    url: url,
+                    type: type,
+                    timestamp: new Date().toISOString(),
+                    vpn: vpnActive
+                });
+                
+                // Keep only last 10 items
+                if (history.length > 10) {
+                    history = history.slice(0, 10);
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('proxyHistory', JSON.stringify(history));
+                
+                // Update UI
+                renderHistory();
+            }
+            
+            function renderHistory() {
+                if (history.length === 0) {
+                    historyList.innerHTML = '<p>No access history. Browse websites to create log entries.</p>';
+                    return;
+                }
+                
+                historyList.innerHTML = '';
+                
+                history.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    
+                    const time = new Date(item.timestamp).toLocaleString();
+                    const vpnBadge = item.vpn ? ' [VPN]' : '';
+                    
+                    historyItem.innerHTML = `
+                        <div class="url">${item.url}${vpnBadge}</div>
+                        <div class="time">${time} (${item.type})</div>
+                    `;
+                    
+                    historyItem.addEventListener('click', () => {
+                        if (item.type === 'browse') {
+                            // Switch to browse tab and set URL
+                            tabs.forEach(t => t.classList.remove('active'));
+                            document.querySelector('[data-tab="browse"]').classList.add('active');
+                            
+                            tabContents.forEach(content => content.classList.remove('active'));
+                            document.getElementById('browse-tab').classList.add('active');
+                            
+                            urlInput.value = item.url;
+                            browseWebsite();
+                        } else {
+                            // Switch to text tab and set URL
+                            tabs.forEach(t => t.classList.remove('active'));
+                            document.querySelector('[data-tab="text"]').classList.add('active');
+                            
+                            tabContents.forEach(content => content.classList.remove('active'));
+                            document.getElementById('text-tab').classList.add('active');
+                            
+                            textUrlInput.value = item.url;
+                            fetchTextContent();
+                        }
+                    });
+                    
+                    historyList.appendChild(historyItem);
+                });
+            }
+            
+            function clearHistory() {
+                history = [];
+                localStorage.removeItem('proxyHistory');
+                renderHistory();
+                const vpnStatus = vpnActive ? ' (VPN)' : '';
+                showStatus(`ACCESS LOG WIPED${vpnStatus}`, vpnActive ? 'vpn' : 'success');
+                setTimeout(() => { statusMessage.style.display = 'none'; }, 2000);
+            }
+            
+            // Resize canvas when window resizes
+            window.addEventListener('resize', function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        });
+    </script>
+</body>
+</html>
